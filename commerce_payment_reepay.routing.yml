@@ -1,0 +1,10 @@
+commerce_payment_reepay.reepayform:
+  path: '/commerce/payment/reepay/{commerce_order}'
+  defaults:
+    _form: '\Drupal\commerce_payment_reepay\Form\ReepayForm'
+  requirements:
+    _permission: 'access content'
+  options:
+    parameters:
+      commerce_order:
+        type: entity:commerce_order

@@ -1,0 +1,17 @@
+reepay:
+  remote: https://docs.reepay.com/js
+  version: 1.0.0
+  license:
+    name: MIT
+    url: https://github.com/reepay/reepay-js/blob/master/LICENSE.md
+    gpl-compatible: true
+  js:
+    https://js.reepay.com/v1/reepay.min.js: { type: external, minified: true }
+
+handling:
+  version: 1.0.0
+  js:
+    js/reepay.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupalSettings
