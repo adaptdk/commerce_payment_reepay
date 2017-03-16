@@ -26,6 +26,7 @@ class ReepayApi {
 
     $this->client = new Client([
       'base_uri' => $this->baseUrl,
+      'auth' => [$this->key, ''],
     ]);
   }
 
@@ -37,7 +38,6 @@ class ReepayApi {
    */
   protected function getHeaders() {
     return [
-      'username' => $this->key,
       'Content-Type' => 'application/json',
       'Accept' => 'application/json',
     ];
@@ -55,27 +55,72 @@ class ReepayApi {
    *   The server response.
    */
   protected function postRequest($url, $data) {
-    $response = $this->client->post($url, [
-      'json' => $data,
-      'headers' => $this->getHeaders(),
-    ]);
+    try {
+      $response = $this->client->post($url, [
+        'json' => $data,
+        'headers' => $this->getHeaders(),
+      ]);
 
-    $responseBody = json_decode($response->getBody());
-
+      $responseBody = json_decode($response->getBody());
+    }
+    catch (\Exception $exception) {
+      $responseBody = $exception->getMessage();
+    }
     return $responseBody;
   }
 
   /**
-   * Get the password hash for a user.
+   * Perform a GET request to Reepay.
    *
-   * @param string $username
-   *   The username to search for.
+   * @param string $url
+   *   The GET url to call.
    *
    * @return mixed
-   *   The password hash or FALSE.
+   *   The server response.
+   */
+  protected function getRequest($url, $options = []) {
+    $options = array_merge($options, $this->getHeaders());
+    try {
+      $response = $this->client->get($url, $options);
+      $responseBody = json_decode($response->getBody());
+    }
+    catch (RequestException $exception) {
+      $responseBody = json_decode($exception->getResponse()->getBody()->getContents());
+    }
+    return $responseBody;
+  }
+
+  /**
+   * @param bool $only_active
+   * @return mixed
+   */
+  public function getListOfPlans($only_active = TRUE) {
+    return $this->getRequest('plan', [
+      'query' => [
+        'only_active' => $only_active,
+      ]
+    ]);
+  }
+
+  public function createCustomer($customer) {
+    return $this->postRequest('customer', $customer);
+  }
+
+  /**
+   * Create a new subscription.
+   *
+   * @param string $data
+   *   The subscription data.
+   *
+   * @return mixed
+   *   The response object or FALSE.
    */
   public function createSubscription($data) {
     return $this->postRequest('subscription', $data);
+  }
+
+  public function createInvoice($invoice, $subscriptionId) {
+    return $this->postRequest('subscription/' . $subscriptionId . '/invoice', $invoice);
   }
 
 }

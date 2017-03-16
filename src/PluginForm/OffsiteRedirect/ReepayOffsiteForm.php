@@ -103,30 +103,49 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
     $number_formatter->setMaximumFractionDigits(6);
     $number_formatter->setMinimumFractionDigits(2);
     $number_formatter->setGroupingUsed(FALSE);
+    // Create customer / Update
+    ...
+    $create_customer = new \stdClass();
+    $create_customer = new \stdClass();
+    $create_customer->email = $order->getEmail();
+    $create_customer->handle = $user->id();
+    $result = $client->createCustomer($create_customer);
+
+    $create_sub = new \stdClass();
+    $create_sub->customer = $user->ud();
+    $create_sub->plan = 'plan-d5740';
+    $create_sub->signup_method = "card_token";
+    $create_sub->card_token = $token;
+    $create_sub->no_trial = "true";
+    $create_sub->test = ($configuration['mode'] == 'test') ? TRUE : FALSE;
+    $create_sub->generate_handle = true;
+    $result = $client->createSubscription($create_sub);
+
     foreach ($shipments as $shipment_id) {
       $shipment = Shipment::load($shipment_id->target_id);
       $price = $shipment->getAmount()->getNumber();
       $total = $number_formatter->format($price);
-
+      $total = str_replace(',', '', $total);
       $date = $shipment->field_shipment_delivery_date->first()->value;
       $dueDate = DrupalDateTime::createFromTimestamp(strtotime($date))->format('Y-m-d') . 'T00:00:00';
       $data = new \stdClass();
-      $data->create_customer = new \stdClass();
-      //$data->create_customer->handle = "customer006";
-      $data->create_customer->email = $order->getEmail();
-      $data->plan = 'plan-d5740';
+      $data->customer = new \stdClass();
+      $data->handle = $shipment->uuid();
+      $date->settle->due = $dueDate - 3days;
+      //$data->plan = 'plan-d5740';
       $data->amount = $total;
-      $data->test = $configuration['mode'];
-      //$data->handle = "sub0002";
-      $data->generateHandle = "true";
-      $data->signup_method = "card_token";
-      $data->plan_version = "1";
-      $data->start_date = $dueDate;
-      $data->end_date = $dueDate;
-      $data->grace_duration = "172800";
-      $data->card_token = $token;
-      $data->no_trial = "true";
-      $result = $client->createSubscription($data);
+      $data->order_lines = [];
+      // Add delivery date for shipment to order text.
+      foreach ($shipment->getItems() as $item) {
+        $orderLine = new \stdClass();
+        $orderLine->ordertext = $item->label();
+        $orderLine->amount = $item->total()->getNumber();
+        $orderLine->amount = $item->getQuantity();
+        $data->order_lines[] = $orderLine;
+      }
+      $result = $client->createInvoice($data);
+      // $sub_handle = $result->handle;
+      // https://api.reepay.com/v1/subscription/{handle}/invoice
       \Drupal::logger('reepay')->notice(json_encode($result));
     }
     \Drupal::logger('reepay')->notice("submit");
