@@ -4,6 +4,7 @@ namespace Drupal\commerce_payment_reepay\PluginForm\OffsiteRedirect;
 
 use CommerceGuys\Intl\Formatter\NumberFormatterInterface;
 use Drupal\commerce_order\Entity\Order;
+use Drupal\commerce_order\Entity\OrderItem;
 use Drupal\commerce_payment\PluginForm\PaymentOffsiteForm as BasePaymentOffsiteForm;
 use Drupal\commerce_payment_reepay\ReepayApi;
 use Drupal\commerce_shipping\Entity\Shipment;
@@ -72,10 +73,6 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
         'data-reepay' => 'token'
       ]
     ];
-    $form['submit'] = [
-      '#type' => 'button',
-      '#value' => t('Submit'),
-    ];
     return $this->buildRedirectForm($form, $form_state, '', []);
   }
 
@@ -89,6 +86,7 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
     $values = $form_state->getValues();
     $token = $values['payment_process']['offsite_payment']['reepay-token'];
+    \Drupal::logger('reepay')->notice(json_encode($values['payment_process']['offsite_payment']));
     $payment = $this->entity;
     $payment_gateway_plugin = $payment->getPaymentGateway()->getPlugin();
     // Get the configuration array.
@@ -96,7 +94,6 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
     /** @var Order $order */
     $order = $payment->getOrder();
     $email = $order->getEmail();
-    $shipments = $order->get('shipments');
     $client = new ReepayApi($configuration['private_key']);
     $number_formatter = \Drupal::service('commerce_price.number_formatter_factory')
       ->createInstance(NumberFormatterInterface::DECIMAL);
@@ -104,51 +101,61 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
     $number_formatter->setMinimumFractionDigits(2);
     $number_formatter->setGroupingUsed(FALSE);
     // Create customer / Update
-    ...
-    $create_customer = new \stdClass();
     $create_customer = new \stdClass();
     $create_customer->email = $order->getEmail();
-    $create_customer->handle = $user->id();
+    if ($order->getCustomer()->id() != 0) {
+      $create_customer->handle = $order->getCustomer()->uuid();
+    }
+    else {
+      $create_customer->generate_handle = TRUE;
+    }
     $result = $client->createCustomer($create_customer);
-
+    if (!is_array($result) || $result['code'] != 400) {
+      $customerHandle = $result->handle;
+      \Drupal::logger('reepay')->notice("Reepay customer created");
+    }
+    else {
+      $customerHandle = $order->getCustomer()->uuid();
+      // @todo Check for active subscription.
+      \Drupal::logger('reepay')->notice("Reepay customer already exists");
+    }
     $create_sub = new \stdClass();
-    $create_sub->customer = $user->ud();
+    $create_sub->customer = $customerHandle;
     $create_sub->plan = 'plan-d5740';
     $create_sub->signup_method = "card_token";
     $create_sub->card_token = $token;
     $create_sub->no_trial = "true";
     $create_sub->test = ($configuration['mode'] == 'test') ? TRUE : FALSE;
     $create_sub->generate_handle = true;
-    $result = $client->createSubscription($create_sub);
-
-    foreach ($shipments as $shipment_id) {
-      $shipment = Shipment::load($shipment_id->target_id);
-      $price = $shipment->getAmount()->getNumber();
+    $plan = $client->createSubscription($create_sub);
+    \Drupal::logger('reepay')->notice("Reepay subscription created");
+    $shipments = $order->get('shipments');
+    foreach ($shipments->referencedEntities() as $shipment) {
+      $price = $shipment->getTotalDeclaredValue()->getNumber();
       $total = $number_formatter->format($price);
       $total = str_replace(',', '', $total);
       $date = $shipment->field_shipment_delivery_date->first()->value;
-      $dueDate = DrupalDateTime::createFromTimestamp(strtotime($date))->format('Y-m-d') . 'T00:00:00';
+      $dueDate = DrupalDateTime::createFromTimestamp(strtotime('-3 days', strtotime($date)))->format('Y-m-d') . 'T00:00:00';
       $data = new \stdClass();
       $data->customer = new \stdClass();
       $data->handle = $shipment->uuid();
-      $date->settle->due = $dueDate - 3days;
-      //$data->plan = 'plan-d5740';
+      $date->settle = new \stdClass();
+      $date->settle->due = $dueDate;
       $data->amount = $total;
       $data->order_lines = [];
       // Add delivery date for shipment to order text.
       foreach ($shipment->getItems() as $item) {
+        $orderItem = OrderItem::load($item->getOrderItemId());
         $orderLine = new \stdClass();
-        $orderLine->ordertext = $item->label();
-        $orderLine->amount = $item->total()->getNumber();
-        $orderLine->amount = $item->getQuantity();
+        $orderLine->ordertext = $item->getTitle();
+        $orderLine->amount = round($orderItem->getUnitPrice()->getNumber(), 2);
+        $orderLine->quantity = $item->getQuantity();
         $data->order_lines[] = $orderLine;
       }
-      $result = $client->createInvoice($data);
-      // $sub_handle = $result->handle;
-      // https://api.reepay.com/v1/subscription/{handle}/invoice
-      \Drupal::logger('reepay')->notice(json_encode($result));
+      $result = $client->createInvoice($data, $plan->handle);
+      \Drupal::logger('reepay')->notice("Reepay Invoice created");
     }
-    \Drupal::logger('reepay')->notice("submit");
+    \Drupal::logger('reepay')->notice("Reepay subscription created");
     $payment = $this->entity;
     $payment_gateway_plugin = $payment->getPaymentGateway()->getPlugin();
     $payment_gateway_plugin->handlePayment($payment->getOrder(), $result);

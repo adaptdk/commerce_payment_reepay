@@ -1,9 +1,8 @@
 (function($) {
     $(document).ready(function () {
-        console.log(drupalSettings);
         reepay.configure(drupalSettings.reepay.reepayApi);
     });
-    $('.multistep-interflora').on('submit', function (event) {
+    $('form.commerce-checkout-flow').on('submit', function (event) {
         var form = this;
         event.preventDefault();
         reepay.token(form, function (err, token) {

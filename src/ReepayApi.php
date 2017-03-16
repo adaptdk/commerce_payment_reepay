@@ -64,7 +64,10 @@ class ReepayApi {
       $responseBody = json_decode($response->getBody());
     }
     catch (\Exception $exception) {
-      $responseBody = $exception->getMessage();
+      $responseBody = [
+        'code' => $exception->getCode(),
+        'message' => $exception->getMessage(),
+      ];
     }
     return $responseBody;
   }
