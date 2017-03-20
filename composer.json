@@ -3,5 +3,6 @@
     "description": "This module provides a payment integration for reepay.",
     "type": "drupal-module",
     "license": "GPL-2.0+",
-    "homepage": "https://github.com/adaptdk/commerce_payment_reepay"
+    "homepage": "https://github.com/adaptdk/commerce_payment_reepay",
+    "minimum-stability": "dev"
 }
