@@ -25,12 +25,6 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
     // Get the configuration array.
     $configuration = $payment_gateway_plugin->getConfiguration();
     $order = $payment->getOrder();
-//    $form_url = Url::fromRoute('commerce_payment_reepay.reepayform', ['commerce_order' => $order->id()], ['absolute' => TRUE])->toString();
-//    $form['iframe_test'] = [
-//      '#type' => 'inline_template',
-//      '#template' => '<iframe id="reepay-payment" width="100%" height="300px" src="{{ url }}"></iframe>',
-//      '#context' => ['url' => $form_url]
-//    ];
     $form['#attached']['library'][] = 'commerce_payment_reepay/reepay';
     $form['#attached']['drupalSettings'] = [
       'reepay' => [
@@ -110,7 +104,7 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
       $create_customer->generate_handle = TRUE;
     }
     $result = $client->createCustomer($create_customer);
-    if (!is_array($result) || $result['code'] != 400) {
+    if (!is_array($result) || $result['message']->code != 11) {
       $customerHandle = $result->handle;
       \Drupal::logger('reepay')->notice("Reepay customer created");
     }
@@ -137,18 +131,16 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
       $date = $shipment->field_shipment_delivery_date->first()->value;
       $dueDate = DrupalDateTime::createFromTimestamp(strtotime('-3 days', strtotime($date)))->format('Y-m-d') . 'T00:00:00';
       $data = new \stdClass();
-      $data->customer = new \stdClass();
       $data->handle = $shipment->uuid();
-      $date->settle = new \stdClass();
-      $date->settle->due = $dueDate;
-      $data->amount = $total;
+      $data->due = $dueDate;
+      //$data->amount = $total;
       $data->order_lines = [];
       // Add delivery date for shipment to order text.
       foreach ($shipment->getItems() as $item) {
         $orderItem = OrderItem::load($item->getOrderItemId());
         $orderLine = new \stdClass();
         $orderLine->ordertext = $item->getTitle();
-        $orderLine->amount = round($orderItem->getUnitPrice()->getNumber(), 2);
+        $orderLine->amount = round($orderItem->getUnitPrice()->getNumber(), 0) . '00';
         $orderLine->quantity = $item->getQuantity();
         $data->order_lines[] = $orderLine;
       }

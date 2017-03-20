@@ -48,6 +48,7 @@ class ReepayOffsite extends OffsitePaymentGatewayBase {
       '#type' => 'textfield',
       '#title' => $this->t('Public key'),
       '#default_value' => isset($config['public_key']) ? $config['public_key'] : '',
+      '#required' => TRUE,
     ];
     $form['private_key'] = [
       '#type' => 'textfield',
@@ -57,14 +58,13 @@ class ReepayOffsite extends OffsitePaymentGatewayBase {
         'trigger' => 'change',
         'callback' => 'updatePlan',
       ],
+      '#required' => TRUE,
     ];
     $values = $form_state->getValues();
     if (isset($config['private_key']) || isset($values['private_key'])) {
-      dpm($form_state->getValues());
       $key = isset($values['private_key']) ? $values['private_key'] : $config['private_key'];
       $client = new ReepayApi($config['private_key']);
       $plans = $client->getListOfPlans();
-      dpm($plans);
       $plan_options = [];
       if ($plans) {
         foreach ($plans as $plan) {
@@ -78,6 +78,11 @@ class ReepayOffsite extends OffsitePaymentGatewayBase {
         ];
       }
     }
+    $form['webhook_key'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Webhook key'),
+      '#default_value' => isset($config['webhook_key']) ? $config['webhook_key'] : '',
+    ];
     return $form;
   }
 
@@ -94,6 +99,9 @@ class ReepayOffsite extends OffsitePaymentGatewayBase {
       $values = $form_state->getValue($form['#parents']);
       $this->configuration['public_key'] = $values['public_key'];
       $this->configuration['private_key'] = $values['private_key'];
+      if (isset($values['webhook_key'])) {
+        $this->configuration['webhook_key'] = $values['webhook_key'];
+      }
       if (isset($values['payment_plan'])) {
         $this->configuration['payment_plan'] = $values['payment_plan'];
       }

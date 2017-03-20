@@ -61,12 +61,12 @@ class ReepayApi {
         'headers' => $this->getHeaders(),
       ]);
 
-      $responseBody = json_decode($response->getBody());
+      $responseBody = $response->getBody();
     }
     catch (\Exception $exception) {
       $responseBody = [
         'code' => $exception->getCode(),
-        'message' => $exception->getMessage(),
+        'message' => json_decode($exception->getResponse()->getBody()->getContents()),
       ];
     }
     return $responseBody;

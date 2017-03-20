@@ -1,10 +1,7 @@
-commerce_payment_reepay.reepayform:
-  path: '/commerce/payment/reepay/{commerce_order}'
+commerce_payment_reepay.webhook_controller_webhookCallback:
+  path: '/commerce_payment_reepay/webhook/callback'
   defaults:
-    _form: '\Drupal\commerce_payment_reepay\Form\ReepayForm'
+    _controller: '\Drupal\commerce_payment_reepay\Controller\WebhookController::webhookCallback'
+    _title: 'webhookCallback'
   requirements:
     _permission: 'access content'
-  options:
-    parameters:
-      commerce_order:
-        type: entity:commerce_order
