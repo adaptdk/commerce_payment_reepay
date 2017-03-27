@@ -126,4 +126,8 @@ class ReepayApi {
     return $this->postRequest('subscription/' . $subscriptionId . '/invoice', $invoice);
   }
 
+  public function loadInvoice($invoice_id) {
+    return $this->getRequest('invoice/' . $invoice_id);
+  }
+
 }

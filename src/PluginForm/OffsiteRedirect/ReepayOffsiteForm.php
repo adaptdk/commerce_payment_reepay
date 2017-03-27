@@ -81,7 +81,6 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
     $values = $form_state->getValues();
     $token = $values['payment_process']['offsite_payment']['reepay-token'];
-    \Drupal::logger('reepay')->notice(json_encode($values['payment_process']['offsite_payment']));
     $payment = $this->entity;
     $payment_gateway_plugin = $payment->getPaymentGateway()->getPlugin();
     // Get the configuration array.
@@ -116,7 +115,7 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
     }
     $create_sub = new \stdClass();
     $create_sub->customer = $customerHandle;
-    $create_sub->plan = 'plan-d5740';
+    $create_sub->plan = $configuration['payment_plan'];
     $create_sub->signup_method = "card_token";
     $create_sub->card_token = $token;
     $create_sub->no_trial = "true";
