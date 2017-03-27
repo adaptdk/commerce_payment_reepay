@@ -25,6 +25,7 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
     // Get the configuration array.
     $configuration = $payment_gateway_plugin->getConfiguration();
     $order = $payment->getOrder();
+    $form['#attributes']['class'][] = 'reepay-payment-form';
     $form['#attached']['library'][] = 'commerce_payment_reepay/reepay';
     $form['#attached']['drupalSettings'] = [
       'reepay' => [
