@@ -29,7 +29,7 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
     $form['#attached']['library'][] = 'commerce_payment_reepay/reepay';
     $form['#attached']['drupalSettings'] = [
       'reepay' => [
-        'reepayApi' => $configuration['api_key'],
+        'reepayApi' => $configuration['public_key'],
       ],
     ];
     $form['#attached']['library'][] = 'commerce_payment_reepay/handling';
