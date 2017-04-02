@@ -3,6 +3,7 @@
 namespace Drupal\commerce_payment_reepay\PluginForm\OffsiteRedirect;
 
 use CommerceGuys\Intl\Formatter\NumberFormatterInterface;
+use Drupal\commerce_order\Adjustment;
 use Drupal\commerce_order\Entity\Order;
 use Drupal\commerce_order\Entity\OrderItem;
 use Drupal\commerce_payment\PluginForm\PaymentOffsiteForm as BasePaymentOffsiteForm;
@@ -124,6 +125,7 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
     $plan = $client->createSubscription($create_sub);
     \Drupal::logger('reepay')->notice("Reepay subscription created");
     $shipments = $order->get('shipments');
+    $adjustments = $order->getAdjustments();
     foreach ($shipments->referencedEntities() as $shipment) {
       $price = $shipment->getTotalDeclaredValue()->getNumber();
       $total = $number_formatter->format($price);
@@ -144,6 +146,12 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
         $orderLine->quantity = $item->getQuantity();
         $data->order_lines[] = $orderLine;
       }
+      $adjustment = array_shift($adjustments);
+      $orderLine = new \stdClass();
+      $orderLine->ordertext = $adjustment->getLabel();
+      $orderLine->amount = round($adjustment->getAmount()->getNumber(), 0) . '00';
+      $orderLine->quantity = 1;
+      $data->order_lines[] = $orderLine;
       $result = $client->createInvoice($data, $plan->handle);
       \Drupal::logger('reepay')->notice("Reepay Invoice created");
     }
