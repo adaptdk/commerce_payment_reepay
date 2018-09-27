@@ -28,7 +28,14 @@
           $(form).append('<span class="error-message">' + Drupal.t(err.message) + '</span>');
         }
       } else {
-        // At this point we have a valid reepay token which has been put in the form, so we can submit it.
+        // At this point we have a valid reepay token which has been
+        // put in the form, so we can submit it, but first remove all
+        // sensitive data so we don't send credit card, expiration and
+        // cvv to Drupal.
+        $('input[data-reepay="number"]').val(token.masked_card);
+        $('input[data-reepay="month"]').val('');
+        $('input[data-reepay="year"]').val('');
+        $('input[data-reepay="cvv"]').val('');
         form.submit();
       }
     });
