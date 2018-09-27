@@ -61,8 +61,8 @@ class ReepayOffsite extends OffsitePaymentGatewayBase {
       '#required' => TRUE,
     ];
     $values = $form_state->getValues();
-    if (isset($config['private_key']) || isset($values['private_key'])) {
-      $key = isset($values['private_key']) ? $values['private_key'] : $config['private_key'];
+    if (!empty($config['private_key']) || !empty($values['private_key'])) {
+      $key = !empty($values['private_key']) ? $values['private_key'] : $config['private_key'];
       $client = new ReepayApi($config['private_key']);
       $plans = $client->getListOfPlans();
       $plan_options = [];
