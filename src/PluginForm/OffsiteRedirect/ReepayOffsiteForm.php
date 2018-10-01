@@ -15,6 +15,34 @@ use Drupal\Core\Form\FormStateInterface;
 class ReepayOffsiteForm extends BasePaymentOffsiteForm {
 
   /**
+   * The number formatter.
+   *
+   * @var \CommerceGuys\Intl\Formatter\NumberFormatterInterface
+   */
+  protected $numberFormatter;
+
+  /**
+   * Subscription order service.
+   *
+   * @var \Drupal\interflora_subscription\Service\SubscriptionOrderService
+   */
+  protected $subscriptionOrderService;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __construct() {
+    $number_formatter = \Drupal::service('commerce_price.number_formatter_factory')
+      ->createInstance(NumberFormatterInterface::DECIMAL);
+    $number_formatter->setMaximumFractionDigits(6);
+    $number_formatter->setMinimumFractionDigits(2);
+    $number_formatter->setGroupingUsed(FALSE);
+    $this->numberFormatter = $number_formatter;
+
+    $this->subscriptionOrderService = \Drupal::service('interflora_subscription.order');
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
@@ -26,36 +54,67 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
     // Get the configuration array.
     $configuration = $payment_gateway_plugin->getConfiguration();
     $order = $payment->getOrder();
+
+    // Adding this class to the form triggers javascript in the the
+    // page--checkout--payment template, which adds the reepay class.
     $form['#attributes']['class'][] = 'reepay-payment-form';
+
     $form['#attached']['library'][] = 'commerce_payment_reepay/reepay';
     $form['#attached']['drupalSettings'] = [
       'reepay' => [
         'reepayApi' => $configuration['public_key'],
+        'cancel' => $form['#cancel_url'],
+        'return' => $form['#return_url'],
       ],
     ];
     $form['#attached']['library'][] = 'commerce_payment_reepay/handling';
-    $form['number'] = [
+
+    $form['order-details'] = [
+      '#type' => 'container',
+    ];
+    $form['order-details']['recurring-amount'] = [
+      '#type' => 'item',
+      '#title' => t('Purchase information'),
+      '#description' => $order->getTotalPrice(),
+      ];
+    $form['order-details']['order-number'] = [
+      '#type' => 'item',
+      '#title' => t('Order number:'),
+      // @todo Do we need to use a special prefix for the order id like we do
+      // for DIBS?
+      '#description' => $order->id(),
+    ];
+    $form['payment-details'] = [
+      '#type' => 'item',
+      '#title' => t('Enter your payment details'),
+      '#description' => t('You can pay using the following payment cards:'),
+    ];
+
+    $form['card-details'] = [
+      '#type' => 'container',
+    ];
+    $form['card-details']['number'] = [
       '#type' => 'textfield',
       '#title' => t('CreditCard number'),
       '#attributes' => [
         'data-reepay' => 'number'
       ]
     ];
-    $form['month'] = [
+    $form['card-details']['month'] = [
       '#type' => 'textfield',
       '#title' => t('Month'),
       '#attributes' => [
         'data-reepay' => 'month'
       ]
     ];
-    $form['year'] = [
+    $form['card-details']['year'] = [
       '#type' => 'textfield',
       '#title' => t('Year'),
       '#attributes' => [
         'data-reepay' => 'year'
       ]
     ];
-    $form['cvv'] = [
+    $form['card-details']['cvv'] = [
       '#type' => 'textfield',
       '#title' => t('CVV'),
       '#attributes' => [
@@ -64,101 +123,30 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
     ];
     $form['reepay-token'] = [
       '#type' => 'hidden',
-      '#value' => '',
+      '#default_value' => '',
       '#attributes' => [
         'data-reepay' => 'token'
       ]
     ];
-    return $this->buildRedirectForm($form, $form_state, '', []);
-  }
+    $form['submit'] = [
+      '#type' => 'button',
+      '#value' => t('Make payment'),
+    ];
 
-  protected function buildRedirectForm(array $form, FormStateInterface $form_state, $redirect_url, array $data, $redirect_method = self::REDIRECT_GET) {
+    $form['payment-information'] = [
+      '#type' => 'item',
+      '#description' => t('This is a recurring payment in order to pay for your subscription. You are always able to change your credit card information in MyInterflora.'),
+    ];
+
     return $form;
   }
 
   public function validateConfigurationForm(array &$form, FormStateInterface $form_state) {
-  }
-
-  public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
     $values = $form_state->getValues();
-    $token = $values['payment_process']['offsite_payment']['reepay-token'];
-    $payment = $this->entity;
-    $payment_gateway_plugin = $payment->getPaymentGateway()->getPlugin();
-    // Get the configuration array.
-    $configuration = $payment_gateway_plugin->getConfiguration();
-    /** @var Order $order */
-    $order = $payment->getOrder();
-    $email = $order->getEmail();
-    $client = new ReepayApi($configuration['private_key']);
-    $number_formatter = \Drupal::service('commerce_price.number_formatter_factory')
-      ->createInstance(NumberFormatterInterface::DECIMAL);
-    $number_formatter->setMaximumFractionDigits(6);
-    $number_formatter->setMinimumFractionDigits(2);
-    $number_formatter->setGroupingUsed(FALSE);
-    // Create customer / Update
-    $create_customer = new \stdClass();
-    $create_customer->email = $order->getEmail();
-    if ($order->getCustomer()->id() != 0) {
-      $create_customer->handle = $order->getCustomer()->uuid();
+    $card_token = $values['payment_process']['offsite_payment']['reepay-token'];
+    if (empty($card_token)) {
+      $form_state->setError($form['reepay-token'], t('Invalid token'));
     }
-    else {
-      $create_customer->generate_handle = TRUE;
-    }
-    $result = $client->createCustomer($create_customer);
-    if (!is_array($result) || $result['message']->code != 11) {
-      $customerHandle = $result->handle;
-      \Drupal::logger('reepay')->notice("Reepay customer created");
-    }
-    else {
-      $customerHandle = $order->getCustomer()->uuid();
-      // @todo Check for active subscription.
-      \Drupal::logger('reepay')->notice("Reepay customer already exists");
-    }
-    $create_sub = new \stdClass();
-    $create_sub->customer = $customerHandle;
-    $create_sub->plan = $configuration['payment_plan'];
-    $create_sub->signup_method = "card_token";
-    $create_sub->card_token = $token;
-    $create_sub->no_trial = "true";
-    $create_sub->test = ($configuration['mode'] == 'test') ? TRUE : FALSE;
-    $create_sub->generate_handle = true;
-    $plan = $client->createSubscription($create_sub);
-    \Drupal::logger('reepay')->notice("Reepay subscription created");
-    $shipments = $order->get('shipments');
-    $adjustments = $order->getAdjustments();
-    foreach ($shipments->referencedEntities() as $shipment) {
-      $price = $shipment->getTotalDeclaredValue()->getNumber();
-      $total = $number_formatter->format($price);
-      $total = str_replace(',', '', $total);
-      $date = $shipment->field_shipment_delivery_date->first()->value;
-      $dueDate = DrupalDateTime::createFromTimestamp(strtotime('-3 days', strtotime($date)))->format('Y-m-d') . 'T00:00:00';
-      $data = new \stdClass();
-      $data->handle = $shipment->uuid();
-      $data->due = $dueDate;
-      //$data->amount = $total;
-      $data->order_lines = [];
-      // Add delivery date for shipment to order text.
-      foreach ($shipment->getItems() as $item) {
-        $orderItem = OrderItem::load($item->getOrderItemId());
-        $orderLine = new \stdClass();
-        $orderLine->ordertext = $item->getTitle();
-        $orderLine->amount = round($orderItem->getUnitPrice()->getNumber(), 0) . '00';
-        $orderLine->quantity = $item->getQuantity();
-        $data->order_lines[] = $orderLine;
-      }
-      $adjustment = array_shift($adjustments);
-      $orderLine = new \stdClass();
-      $orderLine->ordertext = $adjustment->getLabel();
-      $orderLine->amount = round($adjustment->getAmount()->getNumber(), 0) . '00';
-      $orderLine->quantity = 1;
-      $data->order_lines[] = $orderLine;
-      $result = $client->createInvoice($data, $plan->handle);
-      \Drupal::logger('reepay')->notice("Reepay Invoice created");
-    }
-    \Drupal::logger('reepay')->notice("Reepay subscription created");
-    $payment = $this->entity;
-    $payment_gateway_plugin = $payment->getPaymentGateway()->getPlugin();
-    $payment_gateway_plugin->handlePayment($payment->getOrder(), $result);
   }
 
 }
