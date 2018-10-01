@@ -49,6 +49,7 @@
           $('input[data-reepay="month"]').val('');
           $('input[data-reepay="year"]').val('');
           $('input[data-reepay="cvv"]').val('');
+          $(form).attr('action', drupalSettings.reepay.return);
           form.submit();
         }
       });
