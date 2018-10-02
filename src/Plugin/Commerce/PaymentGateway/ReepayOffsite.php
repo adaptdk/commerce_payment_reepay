@@ -82,19 +82,8 @@ class ReepayOffsite extends OffsitePaymentGatewayBase {
    * {@inheritdoc}
    */
   public function onReturn(OrderInterface $order, Request $request) {
-    // @todo Add examples of request validation.
-    $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
-    $payment = $payment_storage->create([
-      'state' => 'authorization',
-      'amount' => $order->getTotalPrice(),
-      'payment_gateway' => $this->entityId,
-      'order_id' => $order->id(),
-      'test' => $this->getMode() == 'test',
-      'remote_id' => $request->query->get('txn_id'),
-      'remote_state' => $request->query->get('payment_status'),
-      'authorized' => REQUEST_TIME,
-    ]);
-    $payment->save();
+    $order->set('card_token', $request->query->get('reepay-token'));
+    $order->save();
     drupal_set_message('Payment was processed');
   }
 
