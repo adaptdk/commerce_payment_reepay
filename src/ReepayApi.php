@@ -105,6 +105,15 @@ class ReepayApi {
     ]);
   }
 
+  /**
+   * Create a new customer.
+   *
+   * @param string $data
+   *   The customer data.
+   *
+   * @return mixed
+   *   The response object or FALSE.
+   */
   public function createCustomer($customer) {
     return $this->postRequest('customer', $customer);
   }
@@ -122,12 +131,82 @@ class ReepayApi {
     return $this->postRequest('subscription', $data);
   }
 
+  /**
+   * Create a new invoice.
+   *
+   * @param string $data
+   *   The invoice data.
+   *
+   * @return mixed
+   *   The response object or FALSE.
+   */
   public function createInvoice($invoice, $subscriptionId) {
     return $this->postRequest('subscription/' . $subscriptionId . '/invoice', $invoice);
   }
 
+  /**
+   * Create a new plan.
+   *
+   * @param string $data
+   *   The plan data.
+   *
+   * @return mixed
+   *   The response object or FALSE.
+   */
+  public function createPlan($data) {
+    return $this->postRequest('plan', $data);
+  }
+
+  /**
+   * Load an invoice. Old version of getInvoice().
+   *
+   * @param string $invoice_id
+   *   The invoice id.
+   *
+   * @return mixed
+   *   The response object or FALSE.
+   */
   public function loadInvoice($invoice_id) {
+    return $this->getInvoice($invoice_id);
+  }
+
+  /**
+   * Get an invoice.
+   *
+   * @param string $invoice_id
+   *   The invoice id.
+   *
+   * @return mixed
+   *   The response object or FALSE.
+   */
+  public function getInvoice($invoice_id) {
     return $this->getRequest('invoice/' . $invoice_id);
+  }
+
+  /**
+   * Load a plan.
+   *
+   * @param string $plan_id
+   *   The plan id.
+   *
+   * @return mixed
+   *   The response object or FALSE.
+   */
+  public function getPlan($plan_id) {
+    return $this->getRequest('plan/' . $plan_id);
+  }
+
+  /**
+   * Load a subscription.
+   *
+   * @param string $subscription_id
+   *   The subscription id.
+   *
+   * @return mixed
+   *   The response object or FALSE.
+   */
+  public function getSubscription($subscription_id) {
+    return $this->getRequest('subscription/' . $subscription_id);
   }
 
 }
