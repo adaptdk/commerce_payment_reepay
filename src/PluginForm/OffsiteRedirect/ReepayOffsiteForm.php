@@ -69,6 +69,12 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
         'data-reepay' => 'token'
       ]
     ];
+    $form['submit'] = [
+      '#type' => 'submit',
+      '#value' => t('pay'),
+
+    ];
+
     return $this->buildRedirectForm($form, $form_state, '', []);
   }
 
