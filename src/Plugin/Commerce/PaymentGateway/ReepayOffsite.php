@@ -16,11 +16,13 @@ use Symfony\Component\HttpFoundation\Request;
  *   label = "Reepay",
  *   display_label = "Reepay Offsite",
  *    forms = {
- *     "offsite-payment" = "Drupal\commerce_payment_reepay\PluginForm\OffsiteRedirect\ReepayOffsiteForm",
+ *     "offsite-payment" =
+ *   "Drupal\commerce_payment_reepay\PluginForm\OffsiteRedirect\ReepayOffsiteForm",
  *   },
  *   payment_method_types = {"credit_card"},
  *   credit_card_types = {
- *     "amex", "dinersclub", "discover", "jcb", "maestro", "mastercard", "visa",
+ *     "amex", "dinersclub", "discover", "jcb", "maestro", "mastercard",
+ *   "visa",
  *   },
  * )
  */
@@ -31,10 +33,10 @@ class ReepayOffsite extends OffsitePaymentGatewayBase {
    */
   public function defaultConfiguration() {
     return [
-      'redirect_method' => 'post',
-      'public_key' => '',
-      'private_key' => '',
-    ] + parent::defaultConfiguration();
+        'redirect_method' => 'post',
+        'public_key' => '',
+        'private_key' => '',
+      ] + parent::defaultConfiguration();
   }
 
   /**
@@ -82,15 +84,16 @@ class ReepayOffsite extends OffsitePaymentGatewayBase {
    * {@inheritdoc}
    */
   public function onReturn(OrderInterface $order, Request $request) {
-    $order->set('card_token', $request->query->get('reepay-token'));
+    $token = $request->request->get('reepay-token');
+    $order->set('card_token', $token);
     $order->save();
-    drupal_set_message('Payment was processed');
+    $this->handlePayment($order, $token);
   }
 
   /**
    * {@inheritdoc}
    */
-  public function handlePayment(OrderInterface $order, $transaction) {
+  public function handlePayment(OrderInterface $order, $token) {
     // @todo Add examples of request validation.
     $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
     $payment = $payment_storage->create([
@@ -99,8 +102,8 @@ class ReepayOffsite extends OffsitePaymentGatewayBase {
       'payment_gateway' => $this->entityId,
       'order_id' => $order->id(),
       'test' => $this->getMode() == 'test',
-      'remote_id' => $transaction->handle,
-      'remote_state' => $transaction->state,
+      'remote_id' => $token,
+      'remote_state' => 'initialize',
       'authorized' => REQUEST_TIME,
     ]);
     $payment->save();

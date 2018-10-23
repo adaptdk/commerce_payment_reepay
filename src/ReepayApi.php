@@ -209,4 +209,56 @@ class ReepayApi {
     return $this->getRequest('subscription/' . $subscription_id);
   }
 
+  /**
+   * Load a subscription.
+   *
+   * @param string $subscription_id
+   *   The subscription id.
+   *
+   * @return mixed
+   *   The response object or FALSE.
+   */
+  public function getWebHook($id) {
+    return $this->getRequest('webhook/' . $id);
+  }
+
+  /**
+   * Cancel an invoice.
+   *
+   * @param string $invoice_id
+   *   The invoice id.
+   *
+   * @return mixed
+   *   The response object or FALSE.
+   */
+  public function cancelInvoice($invoice_id) {
+    return $this->postRequest(sprintf('invoice/%s/cancel', $invoice_id), '');
+  }
+
+  /**
+   * Cancel a subscription.
+   *
+   * @param string $subscription_id
+   *   The subscription id.
+   *
+   * @return mixed
+   *   The response object or FALSE.
+   */
+  public function cancelSubscription($subscription_id) {
+    return $this->postRequest(sprintf('subscription/%s/cancel', $subscription_id), '');
+  }
+
+  /**
+   * Cancel a subscription.
+   *
+   * @param string $subscription_id
+   *   The subscription id.
+   *
+   * @return mixed
+   *   The response object or FALSE.
+   */
+  public function cancelPlan($plan_id) {
+    return $this->postRequest(sprintf('plan/%s/cancel', $plan_id), '');
+  }
+
 }

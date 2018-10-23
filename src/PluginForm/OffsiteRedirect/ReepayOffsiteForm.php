@@ -3,13 +3,7 @@
 namespace Drupal\commerce_payment_reepay\PluginForm\OffsiteRedirect;
 
 use CommerceGuys\Intl\Formatter\NumberFormatterInterface;
-use Drupal\commerce_order\Adjustment;
-use Drupal\commerce_order\Entity\Order;
-use Drupal\commerce_order\Entity\OrderItem;
 use Drupal\commerce_payment\PluginForm\PaymentOffsiteForm as BasePaymentOffsiteForm;
-use Drupal\commerce_payment_reepay\ReepayApi;
-use Drupal\commerce_shipping\Entity\Shipment;
-use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Form\FormStateInterface;
 
 class ReepayOffsiteForm extends BasePaymentOffsiteForm {
@@ -125,12 +119,13 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
       '#type' => 'hidden',
       '#default_value' => '',
       '#attributes' => [
-        'data-reepay' => 'token'
+        'data-reepay' => 'token',
+        'name' => 'reepay-token',
       ]
     ];
     $form['submit'] = [
       '#type' => 'button',
-      '#value' => t('Make payment'),
+      '#value' => $this->t('Pay'),
     ];
 
     $form['payment-information'] = [
