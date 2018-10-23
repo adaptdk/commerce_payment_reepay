@@ -54,7 +54,10 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
 
     // Adding this class to the form triggers javascript in the the
     // page--checkout--payment template, which adds the reepay class.
-    $form['#attributes']['class'][] = 'reepay-payment-form';
+    $form['#attributes']['class'] = [
+      'reepay-payment-form',
+      'reepay__payment-form'
+    ];
 
     $form['#attached']['library'][] = 'commerce_payment_reepay/reepay';
     $form['#attached']['drupalSettings'] = [
@@ -73,7 +76,7 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
       '#type' => 'item',
       '#title' => t('Purchase information'),
       '#description' => $order->getTotalPrice(),
-      ];
+    ];
     $form['order-details']['order-number'] = [
       '#type' => 'item',
       '#title' => t('Order number:'),
@@ -91,32 +94,34 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
       '#type' => 'container',
     ];
     $form['card-details']['number'] = [
-      '#type' => 'textfield',
+      '#type' => 'tel',
       '#title' => t('CreditCard number'),
       '#attributes' => [
         'data-reepay' => 'number'
       ]
     ];
     $form['card-details']['month'] = [
-      '#type' => 'textfield',
+      '#type' => 'tel',
       '#title' => t('Month'),
       '#attributes' => [
         'data-reepay' => 'month'
-      ]
+      ],
+      '#prefix' => '<div class="reepay__wrapper">',
     ];
     $form['card-details']['year'] = [
-      '#type' => 'textfield',
+      '#type' => 'tel',
       '#title' => t('Year'),
       '#attributes' => [
         'data-reepay' => 'year'
       ]
     ];
     $form['card-details']['cvv'] = [
-      '#type' => 'textfield',
+      '#type' => 'tel',
       '#title' => t('CVV'),
       '#attributes' => [
         'data-reepay' => 'cvv'
-      ]
+      ],
+      '#suffix' => '</div>',
     ];
     $form['reepay-token'] = [
       '#type' => 'hidden',
@@ -128,7 +133,12 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
     ];
     $form['submit'] = [
       '#type' => 'button',
-      '#value' => $this->t('Pay'),
+      '#value' => $this->t('Complete payment'),
+      '#attributes' => [
+        'class' => [
+          'reepay__payment-button',
+        ]
+      ]
     ];
 
     $form['payment-information'] = [
