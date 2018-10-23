@@ -5,8 +5,11 @@ namespace Drupal\commerce_payment_reepay\PluginForm\OffsiteRedirect;
 use CommerceGuys\Intl\Formatter\NumberFormatterInterface;
 use Drupal\commerce_payment\PluginForm\PaymentOffsiteForm as BasePaymentOffsiteForm;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 
 class ReepayOffsiteForm extends BasePaymentOffsiteForm {
+
+  use StringTranslationTrait;
 
   /**
    * The number formatter.
