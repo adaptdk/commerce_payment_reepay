@@ -14,19 +14,31 @@ use GuzzleHttp\Exception\RequestException;
  */
 class ReepayApi {
 
-  private $key;
   private $baseUrl = 'https://api.reepay.com/v1/';
   private $client;
 
   /**
    * CrmApi constructor.
+   *
+   * @param string $privateKey
+   *   The Reepay private key.
    */
-  public function __construct($private_key) {
-    $this->key = $private_key;
+  public function __construct($privateKey = '') {
+    if ($privateKey) {
+      $this->setupClient($privateKey);
+    }
+  }
 
+  /**
+   * Initiate client.
+   *
+   * @param string $privateKey
+   *   The Reepay pricate key.
+   */
+  public function setupClient($privateKey): void {
     $this->client = new Client([
       'base_uri' => $this->baseUrl,
-      'auth' => [$this->key, ''],
+      'auth' => [$privateKey, ''],
     ]);
   }
 
@@ -48,8 +60,8 @@ class ReepayApi {
    *
    * @param string $url
    *   The POST url to call.
-   * @param CrmApiItemInterface $item
-   *   The data to POST to the CRM for creation.
+   * @param string $data
+   *   The data to POST to Reepay.
    *
    * @return mixed
    *   The server response.
