@@ -60,6 +60,7 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
     ];
 
     $form['#attached']['library'][] = 'commerce_payment_reepay/reepay';
+
     $form['#attached']['drupalSettings'] = [
       'reepay' => [
         'reepayApi' => $configuration['public_key'],
@@ -71,12 +72,19 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
 
     $form['order-details'] = [
       '#type' => 'container',
+      '#attributes' => [
+        'class' => [
+          'reepay__order-details',
+        ]
+      ]
     ];
+
     $form['order-details']['recurring-amount'] = [
       '#type' => 'item',
-      '#title' => t('Purchase information'),
+      '#title' => t('Price per delivery'),
       '#description' => $order->getTotalPrice(),
     ];
+
     $form['order-details']['order-number'] = [
       '#type' => 'item',
       '#title' => t('Order number:'),
@@ -84,37 +92,45 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
       // for DIBS?
       '#description' => $order->id(),
     ];
+
     $form['payment-details'] = [
       '#type' => 'item',
       '#title' => t('Enter your payment details'),
-      '#description' => t('You can pay using the following payment cards:'),
+      '#description' => t('You can pay using the following payment cards: Dankort/VISA-Dankort, MasterCard, VISA, VISA-Electron'),
     ];
 
     $form['card-details'] = [
       '#type' => 'container',
     ];
+
     $form['card-details']['number'] = [
       '#type' => 'tel',
       '#title' => t('CreditCard number'),
+      '#maxlength' => 16,
       '#attributes' => [
         'data-reepay' => 'number'
       ]
     ];
+
     $form['card-details']['month'] = [
       '#type' => 'tel',
       '#title' => t('Month'),
+      '#maxlength' => 2,
       '#attributes' => [
         'data-reepay' => 'month'
       ],
-      '#prefix' => '<div class="reepay__wrapper">',
+      '#prefix' => '<div class="reepay__inline-wrapper">',
     ];
+
     $form['card-details']['year'] = [
       '#type' => 'tel',
-      '#title' => t('Year'),
+      '#title' => t('Year of expiry'),
+      '#maxlength' => 2,
       '#attributes' => [
-        'data-reepay' => 'year'
+        'data-reepay' => 'year',
       ]
     ];
+
     $form['card-details']['cvv'] = [
       '#type' => 'tel',
       '#title' => t('CVV'),
@@ -123,6 +139,7 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
       ],
       '#suffix' => '</div>',
     ];
+
     $form['reepay-token'] = [
       '#type' => 'hidden',
       '#default_value' => '',
@@ -131,6 +148,7 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
         'name' => 'reepay-token',
       ]
     ];
+
     $form['submit'] = [
       '#type' => 'button',
       '#value' => $this->t('Complete payment'),
