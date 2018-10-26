@@ -9,6 +9,7 @@
 
     var classError = 'error';
 
+    // acts as a flag
     var cardExpiryData = {
       month: '',
       year: '',
@@ -56,8 +57,6 @@
       } else {
         inputMonth.removeClass(classError);
       }
-
-      console.log(cardExpiryData);
     });
 
     // // Card expiry - Year
@@ -76,8 +75,6 @@
       } else {
         inputYear.removeClass(classError);
       }
-
-      console.log(cardExpiryData);
     });
 
 
@@ -113,7 +110,6 @@
       $('.error-message', form).remove();
       reepay.token(form, function(err, token) {
         if (err) {
-          console.log(err);
           // These errors are related to a field.
           var field_error_codes = [
             'validation',
