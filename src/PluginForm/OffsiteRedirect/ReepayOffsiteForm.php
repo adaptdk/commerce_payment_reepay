@@ -101,6 +101,11 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
 
     $form['card-details'] = [
       '#type' => 'container',
+      '#attributes' => [
+        'class' => [
+          'reepay__card-number',
+        ]
+      ]
     ];
 
     $form['card-details']['number'] = [
@@ -108,7 +113,7 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
       '#title' => t('CreditCard number'),
       '#maxlength' => 16,
       '#attributes' => [
-        'data-reepay' => 'number'
+        'data-reepay' => 'number',
       ]
     ];
 
@@ -117,7 +122,7 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
       '#title' => t('Month'),
       '#maxlength' => 2,
       '#attributes' => [
-        'data-reepay' => 'month'
+        'data-reepay' => 'month',
       ],
       '#prefix' => '<div class="reepay__inline-wrapper">',
     ];
