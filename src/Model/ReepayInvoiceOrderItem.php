@@ -2,22 +2,44 @@
 
 namespace Drupal\commerce_payment_reepay\Model;
 
-class InvoiceOrderItem {
+/**
+ * Class ReepayInvoiceOrderItem
+ *
+ * @package Drupal\commerce_payment_reepay\Model
+ */
+class ReepayInvoiceOrderItem {
 
+  /**
+   * @var string
+   */
   public $ordertext = '';
 
+  /**
+   * @var int
+   */
   public $amount = 0;
 
+  /**
+   * @var int
+   */
   public $vat = 0;
 
+  /**
+   * @var int
+   */
   public $quantity = 1;
 
+  /**
+   * @var bool
+   */
   public $amount_incl_vat = TRUE;
 
+  /**
+   * ReepayInvoiceOrderItem constructor.
+   */
   public function __construct() {
 
   }
-
 
   /**
    * @return string
