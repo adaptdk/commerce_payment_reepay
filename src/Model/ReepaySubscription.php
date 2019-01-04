@@ -22,6 +22,11 @@ class ReepaySubscription {
   /**
    * @var string
    */
+  public $handle = '';
+
+  /**
+   * @var string
+   */
   public $signup_method = 'card_token';
 
   /**
@@ -173,6 +178,24 @@ class ReepaySubscription {
    */
   public function setGenerateHandle(bool $generate_handle): self {
     $this->generate_handle = $generate_handle;
+
+    return $this;
+  }
+
+  /**
+   * @return string
+   */
+  public function getHandle(): string {
+    return $this->handle;
+  }
+
+  /**
+   * @param string $handle
+   *
+   * @return \Drupal\commerce_payment_reepay\Model\ReepaySubscription
+   */
+  public function setHandle(string $handle): self {
+    $this->handle = $handle;
 
     return $this;
   }
