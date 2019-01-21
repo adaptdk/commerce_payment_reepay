@@ -85,6 +85,35 @@ class ReepayApi {
   }
 
   /**
+   * Perform a POST request to the CRM.
+   *
+   * @param string $url
+   *   The POST url to call.
+   * @param string $data
+   *   The data to POST to Reepay.
+   *
+   * @return mixed
+   *   The server response.
+   */
+  protected function putRequest($url, $data) {
+    try {
+      $response = $this->client->put($url, [
+        'json' => $data,
+        'headers' => $this->getHeaders(),
+      ]);
+
+      $responseBody = json_decode($response->getBody());
+    }
+    catch (\Exception $exception) {
+      $responseBody = [
+        'code' => $exception->getCode(),
+        'message' => json_decode($exception->getResponse()->getBody()->getContents()),
+      ];
+    }
+    return $responseBody;
+  }
+
+  /**
    * Perform a GET request to Reepay.
    *
    * @param string $url
@@ -170,6 +199,19 @@ class ReepayApi {
   }
 
   /**
+   * Create a new addon.
+   *
+   * @param string $addOnData
+   *   The addon data.
+   *
+   * @return mixed
+   *   The response object or FALSE.
+   */
+  public function createAddOn($addOnData) {
+    return $this->postRequest('add_on', $addOnData);
+  }
+
+  /**
    * Load an invoice. Old version of getInvoice().
    *
    * @param string $invoice_id
@@ -222,6 +264,19 @@ class ReepayApi {
   }
 
   /**
+   * Load an addon.
+   *
+   * @param string $addOn
+   *   The addon id.
+   *
+   * @return mixed
+   *   The response object or FALSE.
+   */
+  public function getAddOn($addOn) {
+    return $this->getRequest('add_on/' . $addOn);
+  }
+
+  /**
    * Load a subscription.
    *
    * @param string $subscription_id
@@ -271,6 +326,32 @@ class ReepayApi {
    */
   public function cancelPlan($plan_id) {
     return $this->postRequest(sprintf('plan/%s/cancel', $plan_id), '');
+  }
+
+  /**
+   * Delete an addon.
+   *
+   * @param string $addOnId
+   *   The addon id.
+   *
+   * @return mixed
+   *   The response object or FALSE.
+   */
+  public function updateAddOn($addOnId, $data) {
+    return $this->putRequest(sprintf('add_on/%s', $addOnId), $data);
+  }
+
+  /**
+   * Delete an addon.
+   *
+   * @param string $addOnId
+   *   The addon id.
+   *
+   * @return mixed
+   *   The response object or FALSE.
+   */
+  public function deleteAddOn($addOnId) {
+    return $this->postRequest(sprintf('add_on/%s', $addOnId), '');
   }
 
 }
