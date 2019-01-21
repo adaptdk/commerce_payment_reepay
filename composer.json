@@ -12,6 +12,7 @@
         }
     },
     "require": {
-        "drupal/commerce": "^2.5"
+        "drupal/commerce": "^2.5",
+        "symfony/serializer": "^3.4"
     }
 }
