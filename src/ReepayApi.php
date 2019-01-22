@@ -3,9 +3,14 @@
 namespace Drupal\commerce_payment_reepay;
 
 use Drupal\commerce_order\Entity\Order;
+use Drupal\serialization\Encoder\XmlEncoder;
 use GuzzleHttp\Client;
 use Drupal\Core\Site\Settings;
 use GuzzleHttp\Exception\RequestException;
+use Symfony\Component\Serializer\Encoder\JsonDecode;
+use Symfony\Component\Serializer\Encoder\JsonEncode;
+use Symfony\Component\Serializer\Normalizer\GetSetMethodNormalizer;
+use Symfony\Component\Serializer\Serializer;
 
 /**
  * Class CrmApi
@@ -14,8 +19,21 @@ use GuzzleHttp\Exception\RequestException;
  */
 class ReepayApi {
 
+  /**
+   * Base reepay url.
+   *
+   * @var string
+   */
   private $baseUrl = 'https://api.reepay.com/v1/';
+
+  /**
+   * The guzzle client.
+   *
+   * @var Client
+   */
   private $client;
+
+  private $serializer;
 
   /**
    * CrmApi constructor.
@@ -27,6 +45,9 @@ class ReepayApi {
     if ($privateKey) {
       $this->setupClient($privateKey);
     }
+    $encoders = ['json' => new JsonDecode()];
+    $normalizers = [new GetSetMethodNormalizer()];
+    $this->serializer = new Serializer($normalizers, $encoders);
   }
 
   /**
@@ -62,23 +83,25 @@ class ReepayApi {
    *   The POST url to call.
    * @param string $data
    *   The data to POST to Reepay.
+   * @param string $class
+   *   Name of the class to deserialize to.
    *
-   * @return mixed
+   * @return string|array
    *   The server response.
    */
-  protected function postRequest($url, $data) {
+  protected function postRequest($url, $data = '', $class = '') {
     try {
       $response = $this->client->post($url, [
         'json' => $data,
         'headers' => $this->getHeaders(),
       ]);
 
-      $responseBody = json_decode($response->getBody());
+      $responseBody = $this->handleResponse($response->getBody()->getContents(), $class);
     }
-    catch (\Exception $exception) {
+    catch (RequestException $exception) {
       $responseBody = [
         'code' => $exception->getCode(),
-        'message' => json_decode($exception->getResponse()->getBody()->getContents()),
+        'message' => $this->handleException($exception),
       ];
     }
     return $responseBody;
@@ -91,23 +114,25 @@ class ReepayApi {
    *   The POST url to call.
    * @param string $data
    *   The data to POST to Reepay.
+   * @param string $class
+   *   Name of the class to deserialize to.
    *
-   * @return mixed
+   * @return array
    *   The server response.
    */
-  protected function putRequest($url, $data) {
+  protected function putRequest($url, $data, $class): array {
     try {
       $response = $this->client->put($url, [
         'json' => $data,
         'headers' => $this->getHeaders(),
       ]);
 
-      $responseBody = json_decode($response->getBody());
+      $responseBody = $this->handleResponse($response->getBody()->getContents(), $class);
     }
-    catch (\Exception $exception) {
+    catch (RequestException $exception) {
       $responseBody = [
         'code' => $exception->getCode(),
-        'message' => json_decode($exception->getResponse()->getBody()->getContents()),
+        'message' => $this->handleException($exception),
       ];
     }
     return $responseBody;
@@ -118,20 +143,58 @@ class ReepayApi {
    *
    * @param string $url
    *   The GET url to call.
+   * @param string $class
+   *   Name of the class to deserialize to.
+   * @param array $options
+   *   Extra options for the request.
    *
    * @return mixed
    *   The server response.
    */
-  protected function getRequest($url, $options = []) {
+  protected function getRequest($url, $class, $options = []) {
     $options = array_merge($options, $this->getHeaders());
     try {
       $response = $this->client->get($url, $options);
-      $responseBody = json_decode($response->getBody());
+      $responseBody = $this->handleResponse($response->getBody()->getContents(), $class);
     }
     catch (RequestException $exception) {
-      $responseBody = json_decode($exception->getResponse()->getBody()->getContents());
+      $responseBody = $this->handleException($exception);
     }
     return $responseBody;
+  }
+
+  /**
+   * @param string $body
+   *   The content to deserialize.
+   * @param string $class
+   *   The content class name.
+   *
+   * @return object
+   *   A class or a json object.
+   */
+  protected function handleResponse($body, $class) {
+    $className = 'Drupal\\commerce_payment_reepay\\Model\\' . $class;
+    if ($class !== '' && class_exists($className)) {
+      $content = $this->serializer->deserialize($body, $className, 'json');
+    }
+    else {
+      $content = json_decode($body);
+    }
+    return $content;
+  }
+
+  /**
+   * @param \GuzzleHttp\Exception\RequestException $exception
+   *
+   * @return mixed
+   */
+  protected function handleException(RequestException $exception) {
+    return json_decode(
+      $exception
+        ->getResponse()
+        ->getBody()
+        ->getContents()
+    );
   }
 
   /**
@@ -139,7 +202,7 @@ class ReepayApi {
    * @return mixed
    */
   public function getListOfPlans($only_active = TRUE) {
-    return $this->getRequest('plan', [
+    return $this->getRequest('plan', 'PlanList', [
       'query' => [
         'only_active' => $only_active,
       ]
@@ -156,7 +219,7 @@ class ReepayApi {
    *   The response object or FALSE.
    */
   public function createCustomer($customer) {
-    return $this->postRequest('customer', $customer);
+    return $this->postRequest('customer', $customer, 'ReepayCustomer');
   }
 
   /**
@@ -169,7 +232,7 @@ class ReepayApi {
    *   The response object or FALSE.
    */
   public function createSubscription($data) {
-    return $this->postRequest('subscription', $data);
+    return $this->postRequest('subscription', $data, 'ReepaySubscription');
   }
 
   /**
@@ -182,7 +245,8 @@ class ReepayApi {
    *   The response object or FALSE.
    */
   public function createInvoice($invoice, $subscriptionId) {
-    return $this->postRequest('subscription/' . $subscriptionId . '/invoice', $invoice);
+    $url = sprintf('subscription/%s/invoice', $subscriptionId);
+    return $this->postRequest($url, $invoice, 'ReepayInvoice');
   }
 
   /**
@@ -195,7 +259,7 @@ class ReepayApi {
    *   The response object or FALSE.
    */
   public function createPlan($data) {
-    return $this->postRequest('plan', $data);
+    return $this->postRequest('plan', $data, 'ReepayPlan');
   }
 
   /**
@@ -208,20 +272,7 @@ class ReepayApi {
    *   The response object or FALSE.
    */
   public function createAddOn($addOnData) {
-    return $this->postRequest('add_on', $addOnData);
-  }
-
-  /**
-   * Load an invoice. Old version of getInvoice().
-   *
-   * @param string $invoice_id
-   *   The invoice id.
-   *
-   * @return mixed
-   *   The response object or FALSE.
-   */
-  public function loadInvoice($invoice_id) {
-    return $this->getInvoice($invoice_id);
+    return $this->postRequest('add_on', $addOnData, 'ReepayAddOn');
   }
 
   /**
@@ -234,7 +285,7 @@ class ReepayApi {
    *   The response object or FALSE.
    */
   public function getInvoice($invoice_id) {
-    return $this->getRequest('invoice/' . $invoice_id);
+    return $this->getRequest(sprintf('invoice/%s', $invoice_id), 'ReepayInvoice');
   }
 
   /**
@@ -247,7 +298,7 @@ class ReepayApi {
    *   The response object or FALSE.
    */
   public function getPlan($plan_id) {
-    return $this->getRequest('plan/' . $plan_id);
+    return $this->getRequest(sprintf('plan/%s', $plan_id), 'ReepayPlan');
   }
 
   /**
@@ -260,7 +311,7 @@ class ReepayApi {
    *   The response object or FALSE.
    */
   public function getSubscription($subscription_id) {
-    return $this->getRequest('subscription/' . $subscription_id);
+    return $this->getRequest(sprintf('subscription/%s', $subscription_id), 'ReepaySubscription');
   }
 
   /**
@@ -273,7 +324,7 @@ class ReepayApi {
    *   The response object or FALSE.
    */
   public function getAddOn($addOn) {
-    return $this->getRequest('add_on/' . $addOn);
+    return $this->getRequest(sprintf('add_on/%s', $addOn), 'ReepayAddOn');
   }
 
   /**
@@ -286,7 +337,8 @@ class ReepayApi {
    *   The response object or FALSE.
    */
   public function getWebHook($id) {
-    return $this->getRequest('webhook/' . $id);
+    $url = sprintf('webhook/%s/ReepayWebHook', $id);
+    return $this->getRequest($url, 'ReepayWebHook');
   }
 
   /**
@@ -299,7 +351,7 @@ class ReepayApi {
    *   The response object or FALSE.
    */
   public function cancelInvoice($invoice_id) {
-    return $this->postRequest(sprintf('invoice/%s/cancel', $invoice_id), '');
+    return $this->postRequest(sprintf('invoice/%s/cancel', $invoice_id));
   }
 
   /**
@@ -312,7 +364,7 @@ class ReepayApi {
    *   The response object or FALSE.
    */
   public function cancelSubscription($subscription_id) {
-    return $this->postRequest(sprintf('subscription/%s/cancel', $subscription_id), '');
+    return $this->postRequest(sprintf('subscription/%s/cancel', $subscription_id));
   }
 
   /**
@@ -325,7 +377,7 @@ class ReepayApi {
    *   The response object or FALSE.
    */
   public function cancelPlan($plan_id) {
-    return $this->postRequest(sprintf('plan/%s/cancel', $plan_id), '');
+    return $this->postRequest(sprintf('plan/%s/cancel', $plan_id));
   }
 
   /**
@@ -338,7 +390,7 @@ class ReepayApi {
    *   The response object or FALSE.
    */
   public function updateAddOn($addOnId, $data) {
-    return $this->putRequest(sprintf('add_on/%s', $addOnId), $data);
+    return $this->putRequest(sprintf('add_on/%s', $addOnId), $data, 'ReepayAddOn');
   }
 
   /**
@@ -351,7 +403,7 @@ class ReepayApi {
    *   The response object or FALSE.
    */
   public function deleteAddOn($addOnId) {
-    return $this->postRequest(sprintf('add_on/%s', $addOnId), '');
+    return $this->postRequest(sprintf('add_on/%s', $addOnId));
   }
 
 }

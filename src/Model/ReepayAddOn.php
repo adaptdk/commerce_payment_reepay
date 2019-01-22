@@ -20,67 +20,91 @@ class ReepayAddOn {
   public const ADD_ON_TYPE_QUANTITY = 'quantity';
 
   /**
+   * Addon state active.
+   */
+  public const ADD_ON_ACTIVE = 'active';
+
+  /**
+   * Addon state deleted.
+   */
+  public const ADD_ON_DELETED = 'deleted';
+
+  /**
    * Name of add-on. Will be used as order line text.
    *
    * @var string
    */
-  protected $name = '';
+  public $name = '';
 
   /**
    * Optional description of add-on.
    *
    * @var string
    */
-  protected $description = '';
+  public $description = '';
 
   /**
    * Add-on amount.
    *
    * @var int
    */
-  protected $amount = 0;
+  public $amount = 0;
 
   /**
    * Optional vat for add-on. Account default is used if none given.
    *
    * @var float
    */
-  protected $vat = 0;
+  public $vat = 0;
 
   /**
    * Per account unique handle for the add-on.
    *
    * @var string
    */
-  protected $handle = '';
+  public $handle = '';
 
   /**
    * Add-on type on_off or quantity.
    *
    * @var string
    */
-  protected $type = '';
+  public $type = '';
 
   /**
    * Whether the amount is including VAT.
    *
    * @var bool
    */
-  protected $amount_incl_vat = TRUE;
+  public $amount_incl_vat = TRUE;
 
   /**
    * Whether all plans are eligible for this add-on.
    *
    * @var bool
    */
-  protected $all_plans = FALSE;
+  public $all_plans = FALSE;
 
   /**
    * If not all_plans are set to true, then the set of eligible plan handles must be defined.
    *
    * @var array
    */
-  protected $eligible_plans = [];
+  public $eligible_plans;
+
+  /**
+   * Add-on state active or deleted.
+   *
+   * @var string
+   */
+  public $state = self::ADD_ON_ACTIVE;
+
+  /**
+   * Date when the add-on was deleted if deleted. In ISO-8601 extended offset date-time format.
+   *
+   * @var string
+   */
+  public $deleted = '';
 
   /**
    * ReepayAddOn constructor.
@@ -247,6 +271,42 @@ class ReepayAddOn {
    */
   public function setEligiblePlans(array $eligible_plans): self {
     $this->eligible_plans = $eligible_plans;
+
+    return $this;
+  }
+
+  /**
+   * @return string
+   */
+  public function getState(): string {
+    return $this->state;
+  }
+
+  /**
+   * @param string $state
+   *
+   * @return \Drupal\commerce_payment_reepay\Model\ReepayAddOn
+   */
+  public function setState(string $state): self {
+    $this->state = $state;
+
+    return $this;
+  }
+
+  /**
+   * @return string
+   */
+  public function getDeleted(): string {
+    return $this->deleted;
+  }
+
+  /**
+   * @param string $deleted
+   *
+   * @return \Drupal\commerce_payment_reepay\Model\ReepayAddOn
+   */
+  public function setDeleted(string $deleted): self {
+    $this->deleted = $deleted;
 
     return $this;
   }

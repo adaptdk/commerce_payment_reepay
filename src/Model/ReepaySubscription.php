@@ -50,6 +50,11 @@ class ReepaySubscription {
   public $generate_handle = FALSE;
 
   /**
+   * @var array
+   */
+  public $add_ons = [];
+
+  /**
    * ReepaySubscription constructor.
    */
   public function __construct() {
@@ -122,7 +127,7 @@ class ReepaySubscription {
    *
    * @return \Drupal\commerce_payment_reepay\Model\ReepaySubscription
    */
-  public function setCardToken(string $card_token): self {
+  public function setCardToken(string $card_token = ''): self {
     $this->card_token = $card_token;
 
     return $this;
@@ -196,6 +201,24 @@ class ReepaySubscription {
    */
   public function setHandle(string $handle): self {
     $this->handle = $handle;
+
+    return $this;
+  }
+
+  /**
+   * @return array
+   */
+  public function getAddOns(): array {
+    return $this->add_ons;
+  }
+
+  /**
+   * @param array $add_ons
+   *
+   * @return \Drupal\commerce_payment_reepay\Model\ReepaySubscription
+   */
+  public function setAddOns(array $add_ons): self {
+    $this->add_ons = $add_ons;
 
     return $this;
   }
