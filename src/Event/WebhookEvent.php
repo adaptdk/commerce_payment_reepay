@@ -14,30 +14,44 @@ class WebhookEvent extends Event {
   const WEBHOOK_EVENT = 'commerce_payment_reepay.webhook.event';
 
   /**
-   * The order.
-   *
-   * @var \Drupal\commerce_order\Entity\OrderInterface
+   * The webhook event data.
    */
   protected $event;
 
+  protected $state;
+
+  protected $type;
+
   /**
-   * Constructs a new OrderEvent.
-   *
-   * @param \Drupal\commerce_order\Entity\OrderInterface $order
-   *   The order.
+   * Constructs a new WebhookEvent.
    */
-  public function __construct($event) {
+  public function __construct($event, $state, $type) {
     $this->event = $event;
+    $this->state = $state;
+    $this->type = $type;
   }
 
   /**
-   * Gets the order.
-   *
-   * @return \Drupal\commerce_order\Entity\OrderInterface
-   *   Gets the order.
+   * Gets the data.
    */
   public function getEvent() {
     return $this->event;
+  }
+
+  public function getState() {
+    return $this->state;
+  }
+
+  public function setState($state) {
+    $this->state = $state;
+  }
+
+  public function getType() {
+    $this->type;
+  }
+
+  public function setType($type) {
+    $this->type = $type;
   }
 
 }

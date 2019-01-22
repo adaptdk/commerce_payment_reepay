@@ -16,11 +16,13 @@ use Symfony\Component\HttpFoundation\Request;
  *   label = "Reepay",
  *   display_label = "Reepay Offsite",
  *    forms = {
- *     "offsite-payment" = "Drupal\commerce_payment_reepay\PluginForm\OffsiteRedirect\ReepayOffsiteForm",
+ *     "offsite-payment" =
+ *   "Drupal\commerce_payment_reepay\PluginForm\OffsiteRedirect\ReepayOffsiteForm",
  *   },
  *   payment_method_types = {"credit_card"},
  *   credit_card_types = {
- *     "amex", "dinersclub", "discover", "jcb", "maestro", "mastercard", "visa",
+ *     "amex", "dinersclub", "discover", "jcb", "maestro", "mastercard",
+ *   "visa",
  *   },
  * )
  */
@@ -31,11 +33,10 @@ class ReepayOffsite extends OffsitePaymentGatewayBase {
    */
   public function defaultConfiguration() {
     return [
-      'redirect_method' => 'post',
-      'public_key' => '',
-      'private_key' => '',
-      'payment_plan' => '',
-    ] + parent::defaultConfiguration();
+        'redirect_method' => 'post',
+        'public_key' => '',
+        'private_key' => '',
+      ] + parent::defaultConfiguration();
   }
 
   /**
@@ -54,40 +55,14 @@ class ReepayOffsite extends OffsitePaymentGatewayBase {
       '#type' => 'textfield',
       '#title' => $this->t('Private key'),
       '#default_value' => isset($config['private_key']) ? $config['private_key'] : '',
-      '#ajax' => [
-        'trigger' => 'change',
-        'callback' => 'updatePlan',
-      ],
       '#required' => TRUE,
     ];
-    $values = $form_state->getValues();
-    if (isset($config['private_key']) || isset($values['private_key'])) {
-      $key = isset($values['private_key']) ? $values['private_key'] : $config['private_key'];
-      $client = new ReepayApi($config['private_key']);
-      $plans = $client->getListOfPlans();
-      $plan_options = [];
-      if ($plans) {
-        foreach ($plans as $plan) {
-          $plan_options[$plan->handle] = $plan->name;
-        }
-        $form['payment_plan'] = [
-          '#type' => 'select',
-          '#title' => $this->t('Plan'),
-          '#options' => $plan_options,
-          '#default_value' => isset($config['payment_plan']) ? $config['payment_plan'] : '',
-        ];
-      }
-    }
     $form['webhook_key'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Webhook key'),
       '#default_value' => isset($config['webhook_key']) ? $config['webhook_key'] : '',
     ];
     return $form;
-  }
-
-  public function updatePlan(array $form, FormStateInterface $form_state) {
-    return $form['payment_plan'];
   }
 
   /**
@@ -102,9 +77,6 @@ class ReepayOffsite extends OffsitePaymentGatewayBase {
       if (isset($values['webhook_key'])) {
         $this->configuration['webhook_key'] = $values['webhook_key'];
       }
-      if (isset($values['payment_plan'])) {
-        $this->configuration['payment_plan'] = $values['payment_plan'];
-      }
     }
   }
 
@@ -112,26 +84,16 @@ class ReepayOffsite extends OffsitePaymentGatewayBase {
    * {@inheritdoc}
    */
   public function onReturn(OrderInterface $order, Request $request) {
-    // @todo Add examples of request validation.
-    $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
-    $payment = $payment_storage->create([
-      'state' => 'authorization',
-      'amount' => $order->getTotalPrice(),
-      'payment_gateway' => $this->entityId,
-      'order_id' => $order->id(),
-      'test' => $this->getMode() == 'test',
-      'remote_id' => $request->query->get('txn_id'),
-      'remote_state' => $request->query->get('payment_status'),
-      'authorized' => REQUEST_TIME,
-    ]);
-    $payment->save();
-    drupal_set_message('Payment was processed');
+    $token = $request->request->get('reepay-token');
+    $order->set('card_token', $token);
+    $order->save();
+    $this->handlePayment($order, $token);
   }
 
   /**
    * {@inheritdoc}
    */
-  public function handlePayment(OrderInterface $order, $transaction) {
+  public function handlePayment(OrderInterface $order, $token) {
     // @todo Add examples of request validation.
     $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
     $payment = $payment_storage->create([
@@ -140,8 +102,8 @@ class ReepayOffsite extends OffsitePaymentGatewayBase {
       'payment_gateway' => $this->entityId,
       'order_id' => $order->id(),
       'test' => $this->getMode() == 'test',
-      'remote_id' => $transaction->handle,
-      'remote_state' => $transaction->state,
+      'remote_id' => $token,
+      'remote_state' => 'initialize',
       'authorized' => REQUEST_TIME,
     ]);
     $payment->save();
