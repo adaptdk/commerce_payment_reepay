@@ -337,7 +337,8 @@ class ReepayApi {
    *   The response object or FALSE.
    */
   public function getWebHook($id) {
-    $url = sprintf('webhook/%s/ReepayWebHook', $id);
+    $url = sprintf('webhook/%s/request', $id);
+    \Drupal::logger('Subscription')->notice($url);
     return $this->getRequest($url, 'ReepayWebHook');
   }
 
