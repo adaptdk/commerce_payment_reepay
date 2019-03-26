@@ -55,6 +55,11 @@ class ReepaySubscription {
   public $add_ons = [];
 
   /**
+   * @var \stdClass
+   */
+  public $hosted_page_links;
+
+  /**
    * ReepaySubscription constructor.
    */
   public function __construct() {
@@ -219,6 +224,24 @@ class ReepaySubscription {
    */
   public function setAddOns(array $add_ons): self {
     $this->add_ons = $add_ons;
+
+    return $this;
+  }
+
+  /**
+   * @return \stdClass
+   */
+  public function getHosted_page_links(): \stdClass {
+    return $this->hosted_page_links;
+  }
+
+  /**
+   * @param \stdClass $hosted_page_links
+   *
+   * @return \Drupal\commerce_payment_reepay\Model\ReepaySubscription
+   */
+  public function setHosted_page_links(\stdClass $hosted_page_links): self {
+    $this->hosted_page_links = $hosted_page_links;
 
     return $this;
   }
