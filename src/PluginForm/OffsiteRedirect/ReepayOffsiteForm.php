@@ -2,7 +2,6 @@
 
 namespace Drupal\commerce_payment_reepay\PluginForm\OffsiteRedirect;
 
-use CommerceGuys\Intl\Formatter\NumberFormatterInterface;
 use Drupal\commerce_payment\PluginForm\PaymentOffsiteForm as BasePaymentOffsiteForm;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -10,13 +9,6 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 class ReepayOffsiteForm extends BasePaymentOffsiteForm {
 
   use StringTranslationTrait;
-
-  /**
-   * The number formatter.
-   *
-   * @var \CommerceGuys\Intl\Formatter\NumberFormatterInterface
-   */
-  protected $numberFormatter;
 
   /**
    * Subscription order service.
@@ -29,13 +21,6 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
    * {@inheritdoc}
    */
   public function __construct() {
-    $number_formatter = \Drupal::service('commerce_price.number_formatter_factory')
-      ->createInstance(NumberFormatterInterface::DECIMAL);
-    $number_formatter->setMaximumFractionDigits(6);
-    $number_formatter->setMinimumFractionDigits(2);
-    $number_formatter->setGroupingUsed(FALSE);
-    $this->numberFormatter = $number_formatter;
-
     $this->subscriptionOrderService = \Drupal::service('interflora_subscription.order');
   }
 
