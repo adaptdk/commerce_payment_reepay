@@ -96,7 +96,7 @@ class ReepayOffsiteForm extends BasePaymentOffsiteForm {
     $form['card-details']['number'] = [
       '#type' => 'tel',
       '#title' => t('CreditCard number'),
-      '#maxlength' => 16,
+      '#maxlength' => 19,
       '#attributes' => [
         'data-reepay' => 'number',
       ]
